@@ -44,7 +44,6 @@ class _ProfileState extends State<Profile> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 200,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
