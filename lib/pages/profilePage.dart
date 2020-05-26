@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +22,6 @@ class Profile extends StatefulWidget {
 class _ProfileState extends State<Profile> {
   GoogleSignIn _googleSignIn = GoogleSignIn();
   SharedPreferences prefs;
-
 
   Future<Null> handleSignout() async{
     prefs = await SharedPreferences.getInstance();
@@ -76,8 +76,8 @@ class _ProfileState extends State<Profile> {
                     ClipRRect(
                       borderRadius: BorderRadius.only(
                           bottomRight: Radius.circular(15)),
-                      child: Image(
-                        image: NetworkImage(widget.photo),
+                      child: CachedNetworkImage(
+                        imageUrl: widget.photo,
                         fit: BoxFit.fill,
                       ),
                     )
@@ -87,7 +87,7 @@ class _ProfileState extends State<Profile> {
                     top: 190,
                     left: SizeConfig.blockSizeHorizontal * 55,
                     child: Container(
-                      child: Text(
+                      child: Text(widget.name == null ? "no name":
                         widget.name.split(" ")[0],
                         style: TextStyle(
                             fontSize: SizeConfig.blockSizeVertical * 3.3,
@@ -121,7 +121,7 @@ class _ProfileState extends State<Profile> {
                       child: Center(
                           child: GestureDetector(
                               onTap: handleSignout,
-                              child: Icon(MdiIcons.logoutVariant)
+                              child: Icon(MdiIcons.logoutVariant, size: 25,)
                           )
                       ),
                     ),
@@ -303,7 +303,7 @@ class _ProfileState extends State<Profile> {
                             Positioned(
                               bottom: 22,
                               child: Text(
-                                "Favorite\n Movies",
+                                "Favorite Movies",
                                 style: TextStyle(
                                     fontSize: SizeConfig.blockSizeVertical * 2,
                                     fontWeight: FontWeight.bold
@@ -349,7 +349,7 @@ class _ProfileState extends State<Profile> {
                             Positioned(
                               bottom: 22,
                               child: Text(
-                                "Close\n Friends",
+                                "Close Friends",
                                 style: TextStyle(
                                     fontSize: SizeConfig.blockSizeVertical * 2,
                                     fontWeight: FontWeight.bold
