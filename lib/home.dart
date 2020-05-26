@@ -48,25 +48,48 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme
+        .of(context)
+        .scaffoldBackgroundColor == Color.fromRGBO(1, 1, 1, 1);
     SizeConfig().init(context);
     return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            width: SizeConfig.blockSizeHorizontal*100,
-            height: SizeConfig.blockSizeVertical*100,
+        body: Stack(
+          children: [
+            Container(
+              width: SizeConfig.blockSizeHorizontal*100,
+              height: SizeConfig.blockSizeVertical*100,
               child: getPage(_currentIndex),
-          ),
-          Positioned(
-            left: 0, bottom: 0, right: 0,
-            child: bottomNavigationBar,
-          )
-        ],
-      )
+            ),
+            Positioned(
+              left: 0, bottom: 0, right: 0,
+              child: Container(
+                height: 60,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(35),
+                      topLeft: Radius.circular(35),
+                    ),
+                    color: Colors.transparent,
+                    boxShadow: [BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        spreadRadius: 0.01,
+                        blurRadius: 20,
+                        offset: Offset(0, -2)
+                    )
+                    ]
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0, bottom: 0, right: 0,
+              child: bottomNavigationBar(isDark),
+            )
+          ],
+        )
     );
   }
 
-  Widget get bottomNavigationBar {
+  Widget bottomNavigationBar(bool isDark) {
     return ClipRRect(
       borderRadius: BorderRadius.only(
         topRight: Radius.circular(35),
@@ -75,10 +98,12 @@ class _HomeState extends State<Home> {
       child: BottomNavigationBar(
         onTap: onTabTapped,
         currentIndex: _currentIndex,
-        backgroundColor: Theme.of(context).accentColor,
+        elevation: 10,
+        backgroundColor: isDark ? Color.fromRGBO(41, 41, 41, 1) : Colors.white,
         showUnselectedLabels: false,
         showSelectedLabels: false,
-        selectedItemColor: Theme.of(context).scaffoldBackgroundColor,
+        selectedItemColor: isDark ? Colors.white : Colors.black.withAlpha(700),
+        unselectedItemColor: Colors.grey.withAlpha(500),
         iconSize: 30,
         items: [
           BottomNavigationBarItem(
