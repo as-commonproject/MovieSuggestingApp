@@ -2,16 +2,12 @@ import 'package:email_validator/email_validator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_auth_buttons/flutter_auth_buttons.dart';
+import 'package:moviesapp/FirebaseProvider/signInProvider.dart';
 import 'package:moviesapp/login_signup/signup.dart';
 import 'package:moviesapp/size_config/size_config.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:moviesapp/home.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class Index extends StatefulWidget {
-  String title;
+  final String title;
 
   Index({
    this.title
@@ -25,142 +21,12 @@ class _IndexState extends State<Index> {
   final email = TextEditingController();
   final password = TextEditingController();
   String errorMessage = "";
-  GoogleSignIn _googleSignIn = GoogleSignIn();
-  FirebaseAuth firebaseAuth = FirebaseAuth.instance;
-  bool isLoggedIn = false;
-  SharedPreferences prefs;
-  FirebaseUser currentUser;
+  final firebaseProvider = SignInProvider();
 
-  Future<FirebaseUser> handelSignIn() async{
-    prefs = await SharedPreferences.getInstance();
-    final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    setState(() {
-      errorMessage = "Signing you in...";
-    });
 
-      AuthCredential credential = GoogleAuthProvider.getCredential(accessToken: googleAuth.accessToken, idToken: null);
-      final FirebaseUser firebaseUser = (await firebaseAuth.signInWithCredential(credential)).user;
-      if(firebaseUser != null){
-        final QuerySnapshot result = await Firestore.instance.collection("users").where("id", isEqualTo: firebaseUser.uid).getDocuments();
-        List<DocumentSnapshot> documents = result.documents;
-        if(documents.length == 0){
-          Firestore.instance.collection("users").document(firebaseUser.uid).setData({
-            'id': firebaseUser.uid,
-            'username': firebaseUser.displayName,
-            'photo': firebaseUser.photoUrl,
-            'email': firebaseUser.email,
-          });
-
-          //Data to local storage
-          currentUser = firebaseUser;
-          await prefs.setString('id', currentUser.uid);
-          await prefs.setString('username', currentUser.displayName);
-          await prefs.setString('photo', currentUser.photoUrl);
-          await prefs.setString('email', currentUser.email);
-          await prefs.setBool('isSignedIn', true);
-          Navigator.pushReplacement(
-              context,
-              CupertinoPageRoute(
-                builder: (_)=> Home(),
-              )
-          );
-        }
-        else{
-          await prefs.setString('id', documents[0]['id']);
-          await prefs.setString('username', documents[0]['username']);
-          await prefs.setString('photo', documents[0]['photo']);
-          await prefs.setString('email', documents[0]['email']);
-          await prefs.setBool('isSignedIn', true);
-
-          Navigator.pushReplacement(context,
-              CupertinoPageRoute(
-                  builder: (_)=> Home()
-              )
-          );
-        }
-      }
-      return firebaseUser;
-  }
-
-  emailSignIn(String UserEmail, String UserPassword) async{
-    try{
-      AuthResult result = await FirebaseAuth.instance.signInWithEmailAndPassword(email: UserEmail, password: UserPassword);
-      FirebaseUser firebaseuser = result.user;
-      if(firebaseuser != null){
-        await prefs.setString('id', firebaseuser.uid);
-        await prefs.setString('username', firebaseuser.displayName);
-        await prefs.setString('email', firebaseuser.email);
-        await prefs.setBool('isSignedIn', true);
-
-        Navigator.pushReplacement(
-            context,
-            CupertinoPageRoute(
-              builder: (_)=> Home(),
-            )
-        );
-      }
-    }
-    catch(error){
-      switch (error.code) {
-        case "ERROR_OPERATION_NOT_ALLOWED":
-          setState(() {
-            errorMessage = "Anonymous accounts are not enabled";
-          });
-          break;
-        case "ERROR_WEAK_PASSWORD":
-          setState(() {
-            errorMessage = "Your password is too weak";
-          });
-          break;
-        case "ERROR_INVALID_EMAIL":
-          setState(() {
-            errorMessage = "Your email is invalid";
-          });
-          break;
-        case "ERROR_EMAIL_ALREADY_IN_USE":
-          setState(() {
-            errorMessage = "Email is already in use on different account";
-          });
-          break;
-        case "ERROR_INVALID_CREDENTIAL":
-          setState(() {
-            errorMessage = "Your email is invalid";
-          });
-          break;
-        case "ERROR_WRONG_PASSWORD":
-          setState(() {
-            errorMessage = "Wrong Password";
-          });
-          break;
-
-        case "ERROR_USER_NOT_FOUND":
-          setState(() {
-            errorMessage = "User Not Found";
-          });
-          break;
-
-        default:
-          errorMessage = "An undefined Error happened.";
-      }
-    }
-  }
-
-  alreadySignedIn()async{
-    prefs = await SharedPreferences.getInstance();
-    bool loggedIn = prefs.getBool('isSignedIn');
-    if(loggedIn){
-      Navigator.pushReplacement(
-          context,
-          CupertinoPageRoute(
-            builder: (_)=> Home(),
-          )
-      );
-    }
-  }
   void initState(){
     super.initState();
-    alreadySignedIn();
+    firebaseProvider.alreadySignedIn(context);
   }
 
 
@@ -394,9 +260,13 @@ class _IndexState extends State<Index> {
                                     left: SizeConfig.blockSizeHorizontal*10,
                                     right: SizeConfig.blockSizeHorizontal*10,
                                   ),
-                                  onPressed: (){
-                                    if(!_formKey.currentState.validate()){
-                                      emailSignIn(email.text, password.text);
+                                  onPressed: ()async{
+                                    if(!_formKey.currentState.validate()) {
+                                        setState(() {
+                                          errorMessage = "Signing you in....";
+                                        });
+                                        errorMessage = await firebaseProvider.emailSignIn(context, email.text, password.text);
+                                        setState(() {});
                                     }
                                   },
                                   shape: RoundedRectangleBorder(
@@ -424,7 +294,7 @@ class _IndexState extends State<Index> {
                                 ),
                                 child: GoogleSignInButton(
                                   onPressed: (){
-                                    handelSignIn();
+                                    firebaseProvider.handelSignIn(context);
                                   },
                                   darkMode: Theme.of(context).scaffoldBackgroundColor == Color.fromRGBO(1, 1, 1, 1),
                                   textStyle: TextStyle(

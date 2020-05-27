@@ -1,54 +1,40 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:moviesapp/login_signup/index.dart';
+import 'package:moviesapp/FirebaseProvider/SignoutProvider.dart';
+import 'package:moviesapp/FirebaseProvider/signInProvider.dart';
 import 'package:moviesapp/size_config/size_config.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class Profile extends StatefulWidget {
-  final String name, photo;
+  final String name, photo, uid;
 
   Profile({
     this.photo,
-    this.name
+    this.name,
+    this.uid
   });
   @override
   _ProfileState createState() => _ProfileState();
 }
 
 class _ProfileState extends State<Profile> {
-  GoogleSignIn _googleSignIn = GoogleSignIn();
-  SharedPreferences prefs;
+  final signOutProvider = SignOutProvider();
+  String currentUID = "";
 
-  Future<Null> handleSignout() async{
-    prefs = await SharedPreferences.getInstance();
-    prefs.clear();
-    prefs.setBool('isSignedIn', false);
-    await FirebaseAuth.instance.signOut();
-    if(await _googleSignIn.isSignedIn()){
-      await _googleSignIn.disconnect();
-      await _googleSignIn.signOut();
-    }
-
-    Navigator.of(context).pushAndRemoveUntil(
-        CupertinoPageRoute(builder: (_)=> Index()),
-            (Route<dynamic> route) => false
-    );
+  getCurrentUID() async{
+    String currentUser =  await SignInProvider().getCurrentUserId();
+    currentUID = currentUser;
   }
 
   void initState(){
     super.initState();
-
+    getCurrentUID();
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme
-        .of(context)
-        .scaffoldBackgroundColor == Color.fromRGBO(1, 1, 1, 1);
+    final bool isDark = Theme.of(context).scaffoldBackgroundColor == Color.fromRGBO(1, 1, 1, 1);
     SizeConfig().init(context);
     return Scaffold(
       body: SingleChildScrollView(
@@ -96,7 +82,7 @@ class _ProfileState extends State<Profile> {
                       ),
                     ),
                   ),
-                  Positioned(
+                    Positioned(
                     top: SizeConfig.blockSizeVertical * 4,
                     right: 0,
                     child: Container(
@@ -120,7 +106,7 @@ class _ProfileState extends State<Profile> {
                       ),
                       child: Center(
                           child: GestureDetector(
-                              onTap: handleSignout,
+                              onTap: ()=>signOutProvider.handleSignOut(context),
                               child: Icon(MdiIcons.logoutVariant, size: 25,)
                           )
                       ),
@@ -138,9 +124,9 @@ class _ProfileState extends State<Profile> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  UserDetails("99", "likes", isDark, MdiIcons.heart),
-                  UserDetails("3,875", "followers", isDark, MdiIcons.starFace),
-                  UserDetails(
+                  userDetails("99", "likes", isDark, MdiIcons.heart),
+                  userDetails("3,875", "followers", isDark, MdiIcons.starFace),
+                  userDetails(
                       "1,922", "following", isDark, MdiIcons.humanGreeting)
                 ],
               ),
@@ -378,7 +364,7 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-  Widget UserDetails(String number, String lable, bool isDark, IconData icon) {
+  Widget userDetails(String number, String label, bool isDark, IconData icon) {
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -408,7 +394,7 @@ class _ProfileState extends State<Profile> {
                 SizedBox(height: SizeConfig.blockSizeVertical * 0.3),
                 FittedBox(
                   child: Text(
-                    lable,
+                    label,
                     style: TextStyle(
                       fontSize: SizeConfig.blockSizeVertical * 1.8,
                       color: isDark ? Colors.white : Colors.grey,

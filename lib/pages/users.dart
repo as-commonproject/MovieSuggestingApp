@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:moviesapp/FirebaseProvider/signInProvider.dart';
 import 'package:moviesapp/pages/profilePage.dart';
 import 'package:moviesapp/size_config/size_config.dart';
 
@@ -10,21 +11,17 @@ class Users extends StatefulWidget {
 }
 
 class _UsersState extends State<Users> {
-  List UserList = [];
+  List userList = [];
+  String currentUID = "";
 
-  getAllUsers() async{
-    print("hello");
-    CollectionReference col = Firestore.instance.collection("users");
-    QuerySnapshot snaps = await col.getDocuments();
-    for(int i=0; i<snaps.documents.length; i++){
-      UserList.add(snaps.documents[i].data["username"]);
-      print(snaps.documents[i].data["username"]);
-    }
+  getCurrentUID() async{
+    String currentUser =  await SignInProvider().getCurrentUserId();
+    currentUID = currentUser;
   }
 
   void initState(){
     super.initState();
-    getAllUsers();
+    getCurrentUID();
   }
 
   @override
@@ -41,13 +38,20 @@ class _UsersState extends State<Users> {
               child: ListView.builder(
                   itemCount: snapshot.data.documents.length,
                   itemBuilder: (context, index){
+                    if(snapshot.data.documents[index]['id'] ==  currentUID){
+                      return Container();
+                    }
                     return Padding(
                       padding: EdgeInsets.all(15.0),
                       child: GestureDetector(
                         onTap: (){
                           Navigator.push(context,
                           CupertinoPageRoute(
-                            builder: (_)=>Profile(name: snapshot.data.documents[index]["username"], photo: snapshot.data.documents[index]["photo"],)
+                            builder: (_)=>Profile(
+                              name: snapshot.data.documents[index]["username"],
+                              photo: snapshot.data.documents[index]["photo"],
+                              uid: snapshot.data.documents[index]["id"],
+                            )
                           )
                           );
                         },

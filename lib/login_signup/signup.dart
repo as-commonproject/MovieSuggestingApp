@@ -1,10 +1,9 @@
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:moviesapp/login_signup/index.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:moviesapp/FirebaseProvider/RegisterProvider.dart';
 import 'package:moviesapp/size_config/size_config.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -18,8 +17,8 @@ class _SignUpPageState extends State<SignUpPage> {
   final lastName = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
-
   final _formKey = GlobalKey<FormState>();
+  final registrationProvider = RegisterUser();
 
   File _image;
   Future getImage() async {
@@ -27,72 +26,6 @@ class _SignUpPageState extends State<SignUpPage> {
     setState(() {
       _image = image;
     });
-  }
-
-  createAccount() async{
-    setState(() {
-      errorMessage = "Creating account, hang on for a few seconds....";
-    });
-    try{
-      AuthResult result = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email.text, password: password.text);
-      if(result != null){
-        UserUpdateInfo updateInfo = UserUpdateInfo();
-        updateInfo.displayName = firstName.text+" "+lastName.text;
-        FirebaseUser firebaseUser = result.user;
-
-        if(firebaseUser != null){
-          await firebaseUser.updateProfile(updateInfo);
-          await firebaseUser.reload();
-          final QuerySnapshot result = await Firestore.instance.collection("users").where("id", isEqualTo: firebaseUser.uid).getDocuments();
-          List<DocumentSnapshot> documents = result.documents;
-          if(documents.length == 0){
-            Firestore.instance.collection("users").document(firebaseUser.uid).setData({
-              'id': firebaseUser.uid,
-              'username': firstName.text+" "+lastName.text,
-              'email': firebaseUser.email,
-            });
-          }
-        }
-        Navigator.pushReplacement(
-            context,
-            CupertinoPageRoute(
-                builder: (_)=>Index(title: "Successfully Created Account")
-            )
-        );
-      }
-    }
-    catch(error){
-      switch (error.code) {
-        case "ERROR_OPERATION_NOT_ALLOWED":
-          setState(() {
-            errorMessage = "Anonymous accounts are not enabled";
-          });
-          break;
-        case "ERROR_WEAK_PASSWORD":
-          setState(() {
-            errorMessage = "Your password is too weak";
-          });
-          break;
-        case "ERROR_INVALID_EMAIL":
-          setState(() {
-            errorMessage = "Your email is invalid";
-          });
-          break;
-        case "ERROR_EMAIL_ALREADY_IN_USE":
-          setState(() {
-            errorMessage = "Email is already in use on different account";
-          });
-          break;
-        case "ERROR_INVALID_CREDENTIAL":
-          setState(() {
-            errorMessage = "Your email is invalid";
-          });
-          break;
-
-        default:
-          errorMessage = "An undefined Error happened.";
-      }
-    }
   }
 
   @override
@@ -158,12 +91,6 @@ class _SignUpPageState extends State<SignUpPage> {
                   ],
                 )
                 : Image.file(_image),
-//          FloatingActionButton(
-//            elevation: 1,
-//            onPressed: getImage,
-//            tooltip: 'Pick Image',
-//            child: Icon(Icons.add_a_photo),
-//          ),
 
                Positioned(
                  top: SizeConfig.blockSizeVertical*35,
@@ -189,7 +116,13 @@ class _SignUpPageState extends State<SignUpPage> {
                             ),
                           ),
                         ),
-
+                        SizedBox(height: SizeConfig.blockSizeVertical*2,),
+                        FloatingActionButton(
+                          elevation: 1,
+                          onPressed: getImage,
+                          tooltip: 'Pick Image',
+                          child: Icon(MdiIcons.cameraPlus, color: Colors.white,),
+                        ),
                         SizedBox(height: SizeConfig.blockSizeVertical*2,),
                          Container(
                            width: SizeConfig.blockSizeHorizontal*100,
@@ -218,9 +151,13 @@ class _SignUpPageState extends State<SignUpPage> {
                               right: SizeConfig.blockSizeHorizontal*10,
                             ),
                             color: Color.fromRGBO(253, 1, 86, 1),
-                            onPressed: (){
+                            onPressed: () async {
                                 if(_formKey.currentState.validate()){
-                                      createAccount();
+                                  setState(() {
+                                    errorMessage = "Creating account, hang on for a few seconds....";
+                                  });
+                                  errorMessage = await registrationProvider.createAccount(context, email.text, password.text, firstName.text+" "+lastName.text);
+                                  setState(() {});
                                 }
                             },
                             shape: RoundedRectangleBorder(
@@ -234,7 +171,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     )
                   ),
                ),
-          ]),
+              ]),
         )
       ),
     );

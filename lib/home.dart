@@ -17,7 +17,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   int _currentIndex = 0;
   SharedPreferences prefs;
-  String name, photo;
+  String name, photo, uid;
 
   getPage(int index){
     switch(index){
@@ -28,7 +28,7 @@ class _HomeState extends State<Home> {
         return SearchPage();
 
       case 2:
-        return Profile(name: name, photo: photo,);
+        return Profile(name: name, photo: photo,uid: uid,);
     }
   }
 
@@ -42,6 +42,7 @@ class _HomeState extends State<Home> {
     prefs = await SharedPreferences.getInstance();
     name = prefs.getString('username');
     photo = prefs.getString('photo');
+    uid = prefs.getString('id');
   }
 
   void initState() {
@@ -61,7 +62,6 @@ class _HomeState extends State<Home> {
               height: SizeConfig.blockSizeVertical*100,
               child: getPage(_currentIndex),
             ),
-
             Positioned(
               left: 0, bottom: 0, right: 0,
               child: bottomNavigationBar(isDark),
@@ -85,33 +85,7 @@ class _HomeState extends State<Home> {
       height: SizeConfig.blockSizeVertical*7,
       buttonBackgroundColor: isDark ? Color.fromRGBO(41, 41, 41, 1) :  Color.fromRGBO(221, 221, 221, 1),
       animationCurve: Curves.easeInOut,
-      animationDuration: Duration(milliseconds: 500),
+      animationDuration: Duration(milliseconds: 450),
     );
   }
 }
-
-
-
-
-
-//************BottomNavBarShadow************
-//          Positioned(
-//              left: 0, bottom: 0, right: 0,
-//              child: Container(
-//                height: 60,
-//                decoration: BoxDecoration(
-//                    borderRadius: BorderRadius.only(
-//                      topRight: Radius.circular(35),
-//                      topLeft: Radius.circular(35),
-//                    ),
-//                    color: Colors.transparent,
-//                    boxShadow: [BoxShadow(
-//                        color: Colors.black.withOpacity(0.2),
-//                        spreadRadius: 0.01,
-//                        blurRadius: 20,
-//                        offset: Offset(0, -2)
-//                    )
-//                    ]
-//                ),
-//              ),
-//            ),
