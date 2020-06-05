@@ -2,11 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:moviesapp/login_signup/index.dart';
+import 'package:moviesapp/pages/first_page.dart';
 
 class RegisterUser{
-  Future<String> createAccount(BuildContext context, String email, String password, String displayName) async{
+  final DateTime time = DateTime.now();
 
+  Future<String> createAccount(BuildContext context, String email, String password, String displayName, String username, String photoUrl) async{
     try{
       AuthResult result = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
       if(result != null){
@@ -22,15 +23,20 @@ class RegisterUser{
           if(documents.length == 0){
             Firestore.instance.collection("users").document(firebaseUser.uid).setData({
               'id': firebaseUser.uid,
-              'username': displayName,
+              'displayName': displayName,
               'email': firebaseUser.email,
+              'bio': "",
+              'username': username,
+              "timestamp" : time,
+              "photoUrl": photoUrl,
+
             });
           }
         }
         Navigator.pushReplacement(
             context,
             CupertinoPageRoute(
-                builder: (_)=>Index(title: "Successfully Created Account")
+                builder: (_)=>FirstPage(),
             )
         );
       }

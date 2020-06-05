@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:moviesapp/login_signup/index.dart';
+import 'package:moviesapp/pages/first_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SignOutProvider{
@@ -19,7 +19,7 @@ class SignOutProvider{
     }
 
     Navigator.of(context).pushAndRemoveUntil(
-        CupertinoPageRoute(builder: (_)=> Index()),
+        CupertinoPageRoute(builder: (_)=> FirstPage()),
             (Route<dynamic> route) => false
     );
   }

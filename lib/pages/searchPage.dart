@@ -1,32 +1,83 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
-import 'package:moviesapp/pages/users.dart';
+import 'package:moviesapp/pages/first_page.dart';
+import 'package:moviesapp/pages/profilePage.dart';
 import 'package:moviesapp/size_config/size_config.dart';
+
 
 class SearchPage extends StatefulWidget {
   @override
   _SearchPageState createState() => _SearchPageState();
 }
 
-class _SearchPageState extends State<SearchPage> {
-  final search = TextEditingController();
-  var listLength = 0;
-  var baseUrl = "https://image.tmdb.org/t/p/w500";
+class _SearchPageState extends State<SearchPage>{
+  Future<QuerySnapshot> searchResultsFuture;
 
-  Future<dynamic> getSearchedMovies() async {
-    String link =
-        "https://api.themoviedb.org/3/search/movie?api_key=3926dff0d2826b265d5396981f90bd1c&query=" + search.text;
-    final response = await http.get(Uri.encodeFull(link), headers: {"Accept": "application/json"});
+  handleSearch(String query){
+    Future<QuerySnapshot> users = userRef.where("username", isGreaterThanOrEqualTo: query)
+    .getDocuments();
 
-    if (response.statusCode == 200) {
-      var data = json.decode(response.body);
-      var movies = data["results"] as List;
-      listLength = movies.length - 1;
-      return movies;
-    }
+    setState(() {
+      searchResultsFuture = users;
+    });
+  }
+
+  Widget buildSearchResults(){
+    return FutureBuilder(
+      future: searchResultsFuture,
+      builder: (context, snapshot){
+        if(!snapshot.hasData){
+          return Center(child: Text("Loading Search Results..."));
+        }
+        return Container(
+          height: SizeConfig.blockSizeVertical*100,
+          child: ListView.builder(
+              itemCount: snapshot.data.documents.length,
+              itemBuilder: (context, index){
+                var user = snapshot.data.documents[index];
+                return GestureDetector(
+                  onTap: (){
+                    Navigator.push(context,
+                    CupertinoPageRoute(
+                      builder: (_)=>Profile(
+                        displayName: user["displayName"],
+                        photoUrl: user["photoUrl"],
+                        profileId: user["id"],
+                        username: user["username"],
+                      )
+                    )
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Hero(
+                          tag: user["username"],
+                          child: CircleAvatar(
+                            backgroundImage: NetworkImage(user["photoUrl"]),
+                            backgroundColor: Theme.of(context).accentColor,
+                            radius: SizeConfig.blockSizeVertical*3.5,
+                          ),
+                        ),
+                        SizedBox(width: SizeConfig.blockSizeHorizontal*4,),
+                        Text(
+                          user['username'],
+                          style: TextStyle(
+                            fontSize: SizeConfig.blockSizeHorizontal*4.5
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                );
+              },
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -38,82 +89,13 @@ class _SearchPageState extends State<SearchPage> {
       child: Stack(
         children: [
           Positioned(
-            top: 100,
-            child: FutureBuilder(
-                future: getSearchedMovies(),
-                builder: (BuildContext context, snapshot) {
-                  if (snapshot.hasData) {
-                    return Container(
-                      width: SizeConfig.blockSizeHorizontal*100,
-                      height: SizeConfig.blockSizeVertical*87,
-                      child: GridView.count(
-                        crossAxisCount: 2,
-                        childAspectRatio: 6/10,//(SizeConfig.blockSizeHorizontal / SizeConfig.blockSizeVertical),
-                        children: List.generate(listLength, (i) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              ),
-                            child: Padding(
-                              padding: EdgeInsets.all(SizeConfig.blockSizeHorizontal*3),
-                              child: Column(
-                                children: <Widget>[
-                                  if (snapshot.data[i]["poster_path"] == null)
-                                      Container(
-                                        padding: EdgeInsets.all(2),
-                                        alignment: Alignment.center,
-                                        width: SizeConfig.blockSizeHorizontal*50,
-                                        height: 280,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(12),
-                                          color: isDark ? Color.fromRGBO(41, 41, 41, 1).withBlue(100) :Colors.white ,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                  color: Colors.black.withOpacity(0.3),
-                                                  spreadRadius: 3,
-                                                  blurRadius: 13,
-                                                  offset: Offset(0, 8)
-                                              )
-                                            ]
-                                        ),
-                                        child: Text(
-                                            snapshot.data[i]['title'],
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: SizeConfig.blockSizeHorizontal*6,
-                                            ),
-                                        ),
-                                      )
-                                  else
-                                    Container(
-                                      decoration: BoxDecoration(
-                                          boxShadow: [
-                                            BoxShadow(
-                                                color: Colors.black.withOpacity(0.3),
-                                                spreadRadius: 3,
-                                                blurRadius: 13,
-                                                offset: Offset(0, 8)
-                                            )
-                                          ]
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: Image(
-                                          image: NetworkImage(baseUrl + snapshot.data[i]["poster_path"]),
-                                          fit: BoxFit.fill,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }),
-                      ),
-                    );
-                  }
-                  return Users();
-                }),
+            top: 80,
+            child: Container(
+              height: SizeConfig.blockSizeVertical*100,
+              width: SizeConfig.blockSizeHorizontal*100,
+              child: searchResultsFuture == null ?
+              Icon(MdiIcons.accountSearch, size: SizeConfig.blockSizeHorizontal*50,) : buildSearchResults(),
+            ) ,
           ),
 
           Container(
@@ -134,7 +116,7 @@ class _SearchPageState extends State<SearchPage> {
             width: SizeConfig.blockSizeHorizontal * 100,
             height: 120,
             padding: EdgeInsets.only(
-              top: SizeConfig.blockSizeVertical * 5,
+              top: SizeConfig.blockSizeVertical * 6,
               left: SizeConfig.blockSizeHorizontal * 6,
               right: SizeConfig.blockSizeHorizontal * 6,
             ),
@@ -143,16 +125,15 @@ class _SearchPageState extends State<SearchPage> {
                 primaryColor: Colors.grey.withOpacity(0.1),
                 hintColor: Colors.transparent,
               ),
-              child: TextField(
+              child: TextFormField(
+                onFieldSubmitted: handleSearch,
                 style: TextStyle(
                   color: isDark ? Colors.white : Colors.black.withAlpha(500)
                 ),
-                controller: search,
-                onSubmitted: (value) => getSearchedMovies(),
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
                   contentPadding: EdgeInsets.all(15),
-                  hintText: "Search",
+                  hintText: "Search User",
                   hintStyle: TextStyle(
                       color:
                       isDark ? Colors.white : Colors.black.withAlpha(500)),
@@ -177,7 +158,7 @@ class _SearchPageState extends State<SearchPage> {
                       child: IconButton(
                         icon: Icon(MdiIcons.searchWeb,
                           color: Colors.black.withAlpha(500),),
-                        onPressed: getSearchedMovies,
+                          onPressed: (){},
                       )),
                 ),
               ),
